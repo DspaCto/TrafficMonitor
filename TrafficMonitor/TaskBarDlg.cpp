@@ -269,6 +269,42 @@ void CTaskBarDlg::ShowInfo(CDC* pDC)
 #endif
 }
 
+// ================= 定制补丁：按项目指定资源占用图类型 =================
+// 在 [task_bar] 的 graph_type_exceptions 中列出的项目，使用与全局设置(cm_graph_type)相反的图类型。
+// 内置显示项用下面的短名；插件项目用其 GetItemId() 返回的ID。
+static const wchar_t* GetDisplayItemGraphKey(DisplayItem type)
+{
+    switch (type)
+    {
+    case TDI_UP: return L"up";
+    case TDI_DOWN: return L"down";
+    case TDI_CPU: return L"cpu";
+    case TDI_MEMORY: return L"memory";
+    case TDI_GPU_USAGE: return L"gpu_usage";
+    case TDI_CPU_TEMP: return L"cpu_temp";
+    case TDI_GPU_TEMP: return L"gpu_temp";
+    case TDI_HDD_TEMP: return L"hdd_temp";
+    case TDI_MAIN_BOARD_TEMP: return L"mb_temp";
+    case TDI_HDD_USAGE: return L"hdd_usage";
+    case TDI_TOTAL_SPEED: return L"total_speed";
+    case TDI_CPU_FREQ: return L"cpu_freq";
+    case TDI_TODAY_TRAFFIC: return L"today_traffic";
+    default: return L"";
+    }
+}
+
+static bool IsPlotGraphItem(const wchar_t* item_key)
+{
+    bool plot_graph = theApp.m_taskbar_data.cm_graph_type;
+    if (item_key != nullptr && item_key[0] != L'\0'
+        && theApp.m_taskbar_data.graph_type_exceptions.Contains(std::wstring(item_key)))
+    {
+        plot_graph = !plot_graph;
+    }
+    return plot_graph;
+}
+// ================= 定制补丁结束 =================
+
 void CTaskBarDlg::DrawDisplayItem(IDrawCommon& drawer, DisplayItem type, CRect rect, int label_width, bool vertical)
 {
     m_item_rects[type] = rect;
@@ -351,7 +387,7 @@ void CTaskBarDlg::DrawDisplayItem(IDrawCommon& drawer, DisplayItem type, CRect r
         if ((type != TDI_UP && type != TDI_DOWN && type != TDI_TOTAL_SPEED) && theApp.m_taskbar_data.show_status_bar
             || (type == TDI_UP || type == TDI_DOWN || type == TDI_TOTAL_SPEED) && theApp.m_taskbar_data.show_netspeed_figure)
         {
-            if (theApp.m_taskbar_data.cm_graph_type)
+            if (IsPlotGraphItem(GetDisplayItemGraphKey(type)))     // 定制：支持按项目覆盖图类型
             {
                 AddHisToList(type, figure_value);
                 TryDrawGraph(drawer, rect, type);
@@ -392,7 +428,7 @@ void CTaskBarDlg::DrawPluginItem(IDrawCommon& drawer, IPluginItem* item, CRect r
         {
              int figure_value = item->GetResourceUsageGraphValue() * 100;
             //横向滚动图
-            if (theApp.m_taskbar_data.cm_graph_type)
+            if (IsPlotGraphItem(item->GetItemId()))     // 定制：支持按项目覆盖图类型
             {
                 AddHisToList(item, figure_value);
                 TryDrawGraph(drawer, rect, item);

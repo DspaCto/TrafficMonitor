@@ -304,6 +304,7 @@ struct TaskBarSettingData : public PublicSettingData
     bool tbar_wnd_snap{ false };     	//如果为true，则在Win11中任务栏窗口贴靠中间任务栏，否则靠近边缘
     bool cm_graph_type{ false };        //如果为false，默认原样式，柱状图显示占用率，如为true，滚动显示占用率
     bool show_graph_dashed_box{ true }; //显示占用图虚线框
+    StringSet graph_type_exceptions;    //定制：使用与全局设置(cm_graph_type)相反的资源占用图类型的项目。内置项用短名(cpu/gpu_temp/...)，插件项用其ID
 
     int item_space{};                   //项目间距
     int vertical_margin{};              //项目垂直间距

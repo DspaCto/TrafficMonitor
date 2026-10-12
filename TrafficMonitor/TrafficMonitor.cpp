@@ -238,6 +238,7 @@ void CTrafficMonitorApp::LoadConfig()
     m_taskbar_data.double_click_action = static_cast<DoubleClickAction>(ini.GetInt(_T("task_bar"), _T("double_click_action"), 0));
     m_taskbar_data.double_click_exe = ini.GetString(L"task_bar", L"double_click_exe", (theApp.m_system_dir + L"\\Taskmgr.exe").c_str());
     m_taskbar_data.cm_graph_type = ini.GetBool(_T("task_bar"), _T("cm_graph_type"), true);
+    m_taskbar_data.graph_type_exceptions.FromString(ini.GetString(L"task_bar", L"graph_type_exceptions", L""));      //定制：按项目覆盖资源占用图类型
     m_taskbar_data.show_graph_dashed_box = ini.GetBool(L"task_bar", L"show_graph_dashed_box", false);
     m_taskbar_data.item_space = ini.GetInt(L"task_bar", L"item_space", 8);
     m_taskbar_data.vertical_margin = ini.GetInt(L"task_bar", L"vertical_margin", 0);
@@ -406,6 +407,7 @@ void CTrafficMonitorApp::SaveConfig()
     ini.WriteInt(L"task_bar", L"double_click_action", static_cast<int>(m_taskbar_data.double_click_action));
     ini.WriteString(L"task_bar", L"double_click_exe", m_taskbar_data.double_click_exe);
     ini.WriteBool(L"task_bar", L"cm_graph_type", m_taskbar_data.cm_graph_type);
+    ini.WriteString(L"task_bar", L"graph_type_exceptions", m_taskbar_data.graph_type_exceptions.ToString());     //定制：按项目覆盖资源占用图类型
     ini.WriteBool(L"task_bar", L"show_graph_dashed_box", m_taskbar_data.show_graph_dashed_box);
     ini.WriteInt(L"task_bar", L"item_space", m_taskbar_data.item_space);
     ini.WriteInt(L"task_bar", L"vertical_margin", m_taskbar_data.vertical_margin);

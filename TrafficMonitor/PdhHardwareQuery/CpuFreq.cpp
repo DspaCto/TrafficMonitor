@@ -16,8 +16,12 @@ typedef struct _PROCESSOR_POWER_INFORMATION {
     ULONG CurrentIdleState;
 } PROCESSOR_POWER_INFORMATION, * PPROCESSOR_POWER_INFORMATION;
 
+// 定制：CPU频率改为“前8个物理核心（CCD0）的平均频率”。
+// 9950X3D 等双 CCD 处理器上，前 16 个逻辑处理器（LP0~LP15）对应第一个 CCD 的 8 个物理核心。
+#define CUSTOM_CCD0_LP_COUNT 16
+
 CPdhCpuFreq::CPdhCpuFreq()
-    : CPdhQuery(_T("\\Processor Information(_Total)\\% Processor Performance"))
+    : CPdhQuery(_T("\\Processor Information(*)\\% Processor Performance"))   // 定制：查询全部逻辑处理器（GetCpuFreq 中只取前16个求平均）
 {
     //获取max_cpu_freq
     SYSTEM_INFO si;
@@ -33,11 +37,30 @@ CPdhCpuFreq::CPdhCpuFreq()
 
 bool CPdhCpuFreq::GetCpuFreq(float& freq)
 {
-    double value{};
-    if (QueryValue(value))
+    // 定制：取所有逻辑处理器的 "% Processor Performance"（实例名形如 "0,0"~"0,31"），
+    // 只统计第一个处理器组中编号 0~15 的实例（= 前 8 个物理核心 = CCD0），求平均值。
+    std::vector<CPdhQuery::CounterValueItem> values;
+    if (!QueryValues(values))
+        return false;
+
+    double sum{};
+    int count{};
+    for (const auto& item : values)
     {
-        freq = value / 100 * max_cpu_freq;
-        return true;
+        int group = -1;
+        int number = -1;
+        if (swscanf_s(item.name.c_str(), L"%d,%d", &group, &number) == 2)
+        {
+            if (group == 0 && number >= 0 && number < CUSTOM_CCD0_LP_COUNT)
+            {
+                sum += item.value;
+                count++;
+            }
+        }
     }
-    return false;
+    if (count == 0)
+        return false;
+
+    freq = static_cast<float>(sum / count / 100.0 * max_cpu_freq);
+    return true;
 }
