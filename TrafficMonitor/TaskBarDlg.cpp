@@ -303,6 +303,30 @@ static bool IsPlotGraphItem(const wchar_t* item_key)
     }
     return plot_graph;
 }
+static std::wstring GetCommonItemGraphKey(const CommonDisplayItem& item)
+{
+    if (item.IsPlugin())
+    {
+        IPluginItem* pitem = item.PluginItem();
+        if (pitem != nullptr && pitem->GetItemId() != nullptr)
+            return std::wstring(pitem->GetItemId());
+        return std::wstring();
+    }
+    return std::wstring(GetDisplayItemGraphKey(item.ItemType()));
+}
+
+static COLORREF GetItemGraphColor(const CommonDisplayItem& item)
+{
+    COLORREF color = theApp.m_taskbar_data.GetUsageGraphColor();
+    std::wstring key = GetCommonItemGraphKey(item);
+    if (!key.empty())
+    {
+        auto iter = theApp.m_taskbar_data.graph_item_colors.find(key);
+        if (iter != theApp.m_taskbar_data.graph_item_colors.end())
+            color = iter->second;
+    }
+    return color;
+}
 // ================= 定制补丁结束 =================
 
 void CTaskBarDlg::DrawDisplayItem(IDrawCommon& drawer, DisplayItem type, CRect rect, int label_width, bool vertical)
@@ -394,7 +418,7 @@ void CTaskBarDlg::DrawDisplayItem(IDrawCommon& drawer, DisplayItem type, CRect r
             }
             else
             {
-                TryDrawStatusBar(drawer, rect, figure_value);
+                TryDrawStatusBar(drawer, rect, figure_value, CommonDisplayItem(type));
             }
         }
     }
@@ -436,7 +460,7 @@ void CTaskBarDlg::DrawPluginItem(IDrawCommon& drawer, IPluginItem* item, CRect r
             //柱状图
             else
             {
-                TryDrawStatusBar(drawer, rect, figure_value);
+                TryDrawStatusBar(drawer, rect, figure_value, CommonDisplayItem(item));
             }
         }
     }
@@ -543,14 +567,14 @@ void CTaskBarDlg::DisableRenderFeatureIfNecessary(CSupportedRenderEnums& ref_sup
     }
 }
 
-void CTaskBarDlg::TryDrawStatusBar(IDrawCommon& drawer, const CRect& rect_bar, int usage_percent)
+void CTaskBarDlg::TryDrawStatusBar(IDrawCommon& drawer, const CRect& rect_bar, int usage_percent, const CommonDisplayItem& item)
 {
     //限制范围
     if (usage_percent > 100)
         usage_percent = 100;
     if (usage_percent < 0)
         usage_percent = 0;
-    COLORREF graph_color = theApp.m_taskbar_data.GetUsageGraphColor();
+    COLORREF graph_color = GetItemGraphColor(item);     // 定制：支持按项目指定颜色
     CSize fill_size = CSize(rect_bar.Width() * usage_percent / 100, rect_bar.Height());
     CRect rect_fill(rect_bar.TopLeft(), fill_size);
     if (theApp.m_taskbar_data.show_graph_dashed_box)
@@ -1439,7 +1463,7 @@ bool CTaskBarDlg::CheckClickedItem(CPoint point)
 void CTaskBarDlg::TryDrawGraph(IDrawCommon& drawer, const CRect& value_rect, CommonDisplayItem item_type)
 {
     std::list<int>& list = m_map_history_data[item_type];
-    COLORREF graph_color = theApp.m_taskbar_data.GetUsageGraphColor();
+    COLORREF graph_color = GetItemGraphColor(item_type);     // 定制：支持按项目指定颜色
     if (theApp.m_taskbar_data.show_graph_dashed_box)
         drawer.DrawRectOutLine(value_rect, graph_color, 1, true);
     int i{ -1 };

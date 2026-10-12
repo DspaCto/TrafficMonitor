@@ -239,6 +239,39 @@ void CTrafficMonitorApp::LoadConfig()
     m_taskbar_data.double_click_exe = ini.GetString(L"task_bar", L"double_click_exe", (theApp.m_system_dir + L"\\Taskmgr.exe").c_str());
     m_taskbar_data.cm_graph_type = ini.GetBool(_T("task_bar"), _T("cm_graph_type"), true);
     m_taskbar_data.graph_type_exceptions.FromString(ini.GetString(L"task_bar", L"graph_type_exceptions", L""));      //定制：按项目覆盖资源占用图类型
+    //定制：解析按项目的图颜色，格式：key=#RRGGBB,key2=#RRGGBB
+    m_taskbar_data.graph_item_colors.clear();
+    {
+        std::wstring color_str = ini.GetString(L"task_bar", L"graph_color_exceptions", L"");
+        size_t pos = 0;
+        while (pos < color_str.size())
+        {
+            size_t comma = color_str.find(L',', pos);
+            std::wstring pair = color_str.substr(pos, comma == std::wstring::npos ? std::wstring::npos : comma - pos);
+            size_t eq = pair.find(L'=');
+            if (eq != std::wstring::npos)
+            {
+                std::wstring key = pair.substr(0, eq);
+                std::wstring val = pair.substr(eq + 1);
+                if (!key.empty() && val.size() == 7 && val[0] == L'#')
+                {
+                    auto hex1 = [](wchar_t c) -> int {
+                        if (c >= L'0' && c <= L'9') return c - L'0';
+                        if (c >= L'a' && c <= L'f') return c - L'a' + 10;
+                        if (c >= L'A' && c <= L'F') return c - L'A' + 10;
+                        return 0;
+                    };
+                    int r = hex1(val[1]) * 16 + hex1(val[2]);
+                    int g = hex1(val[3]) * 16 + hex1(val[4]);
+                    int b = hex1(val[5]) * 16 + hex1(val[6]);
+                    m_taskbar_data.graph_item_colors[key] = RGB(r, g, b);
+                }
+            }
+            if (comma == std::wstring::npos)
+                break;
+            pos = comma + 1;
+        }
+    }
     m_taskbar_data.show_graph_dashed_box = ini.GetBool(L"task_bar", L"show_graph_dashed_box", false);
     m_taskbar_data.item_space = ini.GetInt(L"task_bar", L"item_space", 8);
     m_taskbar_data.vertical_margin = ini.GetInt(L"task_bar", L"vertical_margin", 0);
@@ -408,6 +441,21 @@ void CTrafficMonitorApp::SaveConfig()
     ini.WriteString(L"task_bar", L"double_click_exe", m_taskbar_data.double_click_exe);
     ini.WriteBool(L"task_bar", L"cm_graph_type", m_taskbar_data.cm_graph_type);
     ini.WriteString(L"task_bar", L"graph_type_exceptions", m_taskbar_data.graph_type_exceptions.ToString());     //定制：按项目覆盖资源占用图类型
+    //定制：序列化按项目的图颜色
+    {
+        std::wstring color_str;
+        for (const auto& kv : m_taskbar_data.graph_item_colors)
+        {
+            if (!color_str.empty())
+                color_str += L',';
+            wchar_t color_buff[16]{};
+            swprintf_s(color_buff, L"#%02X%02X%02X", GetRValue(kv.second), GetGValue(kv.second), GetBValue(kv.second));
+            color_str += kv.first;
+            color_str += L'=';
+            color_str += color_buff;
+        }
+        ini.WriteString(L"task_bar", L"graph_color_exceptions", color_str);     //定制：按项目覆盖资源占用图颜色
+    }
     ini.WriteBool(L"task_bar", L"show_graph_dashed_box", m_taskbar_data.show_graph_dashed_box);
     ini.WriteInt(L"task_bar", L"item_space", m_taskbar_data.item_space);
     ini.WriteInt(L"task_bar", L"vertical_margin", m_taskbar_data.vertical_margin);

@@ -305,6 +305,7 @@ struct TaskBarSettingData : public PublicSettingData
     bool cm_graph_type{ false };        //如果为false，默认原样式，柱状图显示占用率，如为true，滚动显示占用率
     bool show_graph_dashed_box{ true }; //显示占用图虚线框
     StringSet graph_type_exceptions;    //定制：使用与全局设置(cm_graph_type)相反的资源占用图类型的项目。内置项用短名(cpu/gpu_temp/...)，插件项用其ID
+    std::map<std::wstring, COLORREF> graph_item_colors;    //定制：按项目指定资源占用图颜色。key同graph_type_exceptions（内置短名/插件ID），value为颜色
 
     int item_space{};                   //项目间距
     int vertical_margin{};              //项目垂直间距
